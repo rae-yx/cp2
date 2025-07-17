@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animal Classifier - AI Image Recognition</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin-bottom: 40px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .results-section {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 1.5rem;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+
+        .upload-area {
+            border: 3px dashed #ccc;
+            border-radius: 15px;
+            padding: 40px;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            background: #f8f9fa;
+            margin-bottom: 20px;
+        }
+
+        .upload-area:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #667eea;
+            background: #e8f2ff;
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 10px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .model-selection {
+            margin-bottom: 20px;
+        }
+
+        .model-group {
+            margin-bottom: 15px;
+        }
+
+        .model-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .model-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: white;
+            transition: border-color 0.3s ease;
+        }
+
+        .model-select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .classify-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .classify-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .classify-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .results {
+            display: none;
+        }
+
+        .uploaded-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            margin-bottom: 10px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+
+        .prediction-item:hover {
+            transform: translateX(5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .prediction-item.top-prediction {
+            background: linear-gradient(135deg, #667eea20, #764ba220);
+            border-left-color: #667eea;
+            font-weight: 600;
+        }
+
+        .animal-name {
+            font-size: 1.1rem;
+            text-transform: capitalize;
+            color: #333;
+        }
+
+        .confidence {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .confidence-bar {
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            border-radius: 4px;
+            transition: width 0.6s ease;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info-box {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #bee5eb;
+        }
+
+        .info-box h3 {
+            margin-bottom: 10px;
+            color: #0c5460;
+        }
+
+        .model-info {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .device-info {
+            text-align: center;
+            color: white;
+            opacity: 0.8;
+            margin-top: 20px;
+        }
+
+        .supported-formats {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐾 Animal Classifier</h1>
+            <p>Powered by Deep Learning - Classify 90 different animal species</p>
+        </div>
+
+        <div class="main-content">
+            <div class="upload-section">
+                <h2 class="section-title">📤 Upload Image</h2>
+                
+                <div class="info-box">
+                    <h3>How it works:</h3>
+                    <p>Upload an image of an animal and our AI models will classify it from 90 different species including cats, dogs, elephants, birds, and many more!</p>
+                </div>
+
+                <form id="uploadForm" enctype="multipart/form-data">
+                    <div class="upload-area" id="uploadArea">
+                        <div class="upload-icon">📁</div>
+                        <div class="upload-text">
+                            <strong>Click to upload</strong> or drag and drop an image here
+                        </div>
+                        <div class="supported-formats">
+                            Supports: JPG, PNG, GIF, BMP, TIFF (max 16MB)
+                        </div>
+                        <input type="file" id="fileInput" name="file" class="file-input" accept="image/*">
+                    </div>
+
+                    <div class="model-selection">
+                        <div class="model-group">
+                            <label for="modelType">Model Architecture:</label>
+                            <select id="modelType" name="model" class="model-select">
+                                <option value="resnet50">ResNet-50</option>
+                                <option value="vgg16">VGG-16</option>
+                                <option value="inceptionv3">InceptionV3</option>
+                            </select>
+                        </div>
+
+                        <div class="model-group">
+                            <label for="modelFile">Model File:</label>
+                            <select id="modelFile" name="model_file" class="model-select">
+                                <option value="">Select a model file...</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="classify-btn" id="classifyBtn" disabled>
+                        🔍 Classify Animal
+                    </button>
+                </form>
+
+                <div class="loading" id="loading">
+                    <div class="loading-spinner"></div>
+                    <p>Analyzing image...</p>
+                </div>
+
+                <div class="model-info">
+                    <strong>Available Models:</strong>
+                    {% for model_type, files in available_models.items() %}
+                        <br>• {{ model_type.upper() }}: {{ files|length }} trained model(s)
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="results-section">
+                <h2 class="section-title">🎯 Classification Results</h2>
+                
+                <div id="initialMessage">
+                    <div class="info-box">
+                        <h3>Ready to classify!</h3>
+                        <p>Upload an animal image to see the AI classification results. The model will provide the top 5 most likely animal species with confidence scores.</p>
+                    </div>
+                </div>
+
+                <div class="results" id="results">
+                    <img id="uploadedImage" class="uploaded-image" src="" alt="Uploaded image">
+                    <div id="predictions"></div>
+                    <div id="modelInfo" class="model-info"></div>
+                </div>
+
+                <div id="errorMessage"></div>
+            </div>
+        </div>
+
+        <div class="device-info">
+            Processing on: {{ device.upper() }} 
+            {% if device == 'cuda' %}🚀 GPU Acceleration{% else %}💻 CPU{% endif %}
+        </div>
+    </div>
+
+    <script>
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const uploadForm = document.getElementById('uploadForm');
+        const classifyBtn = document.getElementById('classifyBtn');
+        const loading = document.getElementById('loading');
+        const results = document.getElementById('results');
+        const initialMessage = document.getElementById('initialMessage');
+        const errorMessage = document.getElementById('errorMessage');
+        const modelType = document.getElementById('modelType');
+        const modelFile = document.getElementById('modelFile');
+
+        // Available models data
+        const availableModels = {{ available_models|tojson }};
+
+        // Populate model files based on selection
+        function updateModelFiles() {
+            const selectedModel = modelType.value;
+            const files = availableModels[selectedModel] || [];
+            
+            modelFile.innerHTML = '<option value="">Select a model file...</option>';
+            files.forEach(file => {
+                const option = document.createElement('option');
+                option.value = file;
+                option.textContent = file;
+                modelFile.appendChild(option);
+            });
+            
+            updateClassifyButton();
+        }
+
+        // Update classify button state
+        function updateClassifyButton() {
+            const hasFile = fileInput.files.length > 0;
+            const hasModel = modelFile.value !== '';
+            classifyBtn.disabled = !hasFile || !hasModel;
+        }
+
+        // File upload handlers
+        uploadArea.addEventListener('click', () => fileInput.click());
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                updateFileDisplay();
+            }
+        });
+
+        fileInput.addEventListener('change', updateFileDisplay);
+        modelType.addEventListener('change', updateModelFiles);
+        modelFile.addEventListener('change', updateClassifyButton);
+
+        function updateFileDisplay() {
+            if (fileInput.files.length > 0) {
+                const fileName = fileInput.files[0].name;
+                uploadArea.querySelector('.upload-text').innerHTML = 
+                    `<strong>Selected:</strong> ${fileName}<br><small>Click to change or drag a new file</small>`;
+                uploadArea.querySelector('.upload-icon').textContent = '✓';
+            }
+            updateClassifyButton();
+        }
+
+        // Form submission
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!fileInput.files[0]) {
+                showError('Please select a file to upload.');
+                return;
+            }
+
+            if (!modelFile.value) {
+                showError('Please select a model file.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            formData.append('model', modelType.value);
+            formData.append('model_file', modelFile.value);
+
+            showLoading();
+            hideError();
+
+            try {
+                const response = await fetch('/classify', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResults(data);
+                } else {
+                    showError(data.error || 'Classification failed');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                hideLoading();
+            }
+        });
+
+        function showLoading() {
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            initialMessage.style.display = 'none';
+            classifyBtn.disabled = true;
+        }
+
+        function hideLoading() {
+            loading.style.display = 'none';
+            updateClassifyButton();
+        }
+
+        function showResults(data) {
+            // Display uploaded image
+            document.getElementById('uploadedImage').src = 'data:image/jpeg;base64,' + data.image;
+
+            // Display predictions
+            const predictionsHtml = data.predictions.map((pred, index) => `
+                <div class="prediction-item ${index === 0 ? 'top-prediction' : ''}">
+                    <div>
+                        <div class="animal-name">${pred.class}</div>
+                        <div class="confidence-bar">
+                            <div class="confidence-fill" style="width: ${pred.confidence * 100}%"></div>
+                        </div>
+                    </div>
+                    <div class="confidence">${pred.percentage}</div>
+                </div>
+            `).join('');
+
+            document.getElementById('predictions').innerHTML = predictionsHtml;
+
+            // Model info
+            document.getElementById('modelInfo').innerHTML = `
+                <strong>Model:</strong> ${data.model.toUpperCase()}<br>
+                <strong>File:</strong> ${data.model_file}<br>
+                <strong>Classified:</strong> ${data.timestamp}
+            `;
+
+            results.style.display = 'block';
+            initialMessage.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.innerHTML = `<div class="error">${message}</div>`;
+            errorMessage.style.display = 'block';
+        }
+
+        function hideError() {
+            errorMessage.style.display = 'none';
+        }
+
+        // Initialize
+        updateModelFiles();
+    </script>
+</body>
+</html> 
